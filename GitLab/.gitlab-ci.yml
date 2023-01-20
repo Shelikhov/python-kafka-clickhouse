@@ -1,0 +1,66 @@
+# Pipeline to build docker image and deploy application on the Minikube.
+
+stages:
+#    - test
+    - build
+    - deploy
+
+include:
+    - local: '/cicd/includes/builds/build_docker.yml'
+    - local: '/cicd/includes/tests/test_python.yml'
+    - local: '/cicd/includes/deploy/deploy_k8s.yml'
+
+variables:
+    # Colors to highlight script behavior
+    RED: '\033[0;31m'        # ERROR
+    GREEN: '\033[0;32m'      # SUCCESS
+    YELLOW: '\033[0;33m'     # NEXT STEP OF THE SCRIPT
+    CLEAN: '\033[0m'         # TO DISABLE HIGHLIGHTING
+
+    # Project variables
+    VERSION: "1.0.0"                                # Application default version
+    VER_FILE: "docker-context/version.txt"          # File version location
+    APP_FILE_PATH: "$DOCKER_CONTEXT_PATH/app.py"    # Application file location
+    CONTAINER_NAME: "python-app"                    # Application docker container name
+    DOCKER_IMAGE: "yashelik/$CONTAINER_NAME"        # Docker image with Application
+    DOCKER_USER: $DOCKER_USER                       # Docker registry user
+    DOCKER_PASS: $DOCKER_PASS                       # Docker registry password
+    DOCKER_IMAGE_REPO: "docker.io"                  # Docker registry repository
+    DOCKER_CLI_EXPERIMENTAL: enabled                # Provides a temp environment for (docker manifest inspect) 
+    DOCKER_CONTEXT_PATH: "docker-context"           # Docker context
+    #EC2_SSH_KEY_PASS: $EC2_SSH_KEY_PASS
+    EC2_USER: "ec2-user"                            # User on the host with Minikube
+    EC2_HOST: "3.145.107.229"                       # Host IP with Minikube
+    TEMP_DIR: "$HOME/temp_dir"                      # Temporary directory that will be deleted at the end
+    K8S_CLUSTER_PORT: "8443"                        # Minikube port for kubectl context
+
+
+# Job to test application
+.test stage:
+    stage: test
+    environment: dev
+    extends: .test_python
+    allow_failure: true
+
+
+# Job to build application
+build stage:
+    stage: build
+    environment: dev
+    extends: .build_docker
+    #rules:
+    #    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"'
+    #      changes:
+    #        - docker-context/Dockerfile
+    #        - docker-context/app.py
+    #      exists:
+    #        - docker-context/Dockerfile
+    #        - docker-context/app.py
+        #- when: never
+
+
+# Job to deploy application
+deploy stage:
+    stage: deploy
+    environment: dev
+    extends: .deploy_minikube

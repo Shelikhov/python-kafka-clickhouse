@@ -1,0 +1,33 @@
+# To build docker image and push in docker registry.
+.build_docker:
+    image: docker:stable
+    services:
+        - docker:dind
+    script:
+        - |
+           VERSION=`grep version $VER_FILE | awk -F": " '{print $2}'`
+        - echo $DOCKER_PASS | docker login --username $DOCKER_USER $DOCKER_IMAGE_REPO --password-stdin
+        - echo -e "${YELLOW}Checking that image with $VERSION tag does not exist in a docker registry ...${CLEAN}"
+        - |
+            if (docker manifest inspect $DOCKER_IMAGE:$VERSION >/dev/null 2>&1); then
+                echo -e "${RED}Docker image with $VERSION tag already exists in the docker registry.${CLEAN}"
+                exit 1
+            else
+                echo -e "${GREEN}Docker image with $VERSION tag does not exist in a docker registry.${CLEAN}"
+            fi
+        - |
+            if [ -f "${DOCKER_CONTEXT_PATH}/Dockerfile" ]; then
+                docker build -t $DOCKER_IMAGE:$VERSION $DOCKER_CONTEXT_PATH \
+                    || (echo -e "${RED}Docker build failed.${CLEAN}" && docker rmi $DOCKER_IMAGE:$VERSION && exit 1) 
+            else
+                echo -e "${RED}Dockerfile not found.${CLEAN}"
+                exit 1
+            fi
+        - docker push $DOCKER_IMAGE:$VERSION 
+            && echo -e "${GREEN}Docker image loaded to the registry.${CLEAN}" \
+            || echo -e "${RED}Docker load to the registry failed.${CLEAN}"
+        - docker tag $DOCKER_IMAGE:$VERSION $DOCKER_IMAGE:latest
+        - docker push $DOCKER_IMAGE:latest 
+            && echo -e "${GREEN}Latest docker image loaded to the registry.${CLEAN}" \
+            || echo -e "${RED}Docker load to the registry failed.${CLEAN}"
+        - docker logout

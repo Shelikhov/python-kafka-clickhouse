@@ -1,0 +1,31 @@
+#=======================================================
+#            			Test Task
+#=======================================================
+
+1. To create a service that generates data in the format with a frequency of 1s (as example):
+timestamp: unix timestamp
+bid_01: float - random number from 1 to 10
+bid_02: float - random number from 1 to 20
+bid_50: float - random number from 1 to 500
+ask_01: float - random number from 1 to 10
+ask_02: float - random number from 1 to 20
+ask 50: float - random number from 1 to 500
+stats: json - json with average for all bids and average for all ask
+
+The data should be sent to the Apache Kafka.
+
+2. To create data integration of their Apache Kafka in Clickhouse.
+
+#=======================================================
+#            			Solution
+#=======================================================
+
+Service that generates data:
+GitLab/docker-context/app.py
+
+Infrastructure (IaC directory):
+Minikube - is an orchestrator to manage Service (Python script).
+Kafka - is a broker for data generated from Service.
+Clickhouse - is a database to store received data from the Kafka Broker.
+
+GitLab directory - to build and deploy python application on the Minikube located in AWS.

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: python-app
+  namespace: default
+  labels:
+    app: python-app
+data:
+  KAFKA_IP: "3.12.150.64"
+  KAFKA_PORT: "9092"
+  KAFKA_TOPIC: "test-topic"

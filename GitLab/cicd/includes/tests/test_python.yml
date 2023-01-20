@@ -1,0 +1,7 @@
+# To test python application.
+.test_python:
+    image: python:latest
+    script:
+        - pip install --upgrade pip
+        - pip install kafka-python psycopg2-binary
+        - python3 $APP_FILE_PATH test --noinput

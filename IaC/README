@@ -1,0 +1,76 @@
+#=======================================================
+#            Infrastructure as Code
+#=======================================================
+
+Terraform projects and modules for Python application.
+
+Projects:
+  - network_project (AWS network for EC2 instances)
+  - kafka-project (Broker for data generated from Python script)
+  - clickhouse-project (Database to store received from Kafka)
+  - minikube-project (Orchestrator to manage Python script)
+
+Modules:
+  - ec2-module
+  - network-module
+
+Terraform state storage:
+  - S3 Bucket
+
+All components will be located in AWS Cloud.
+
+Prerequisites:
+  - to have AWS account
+  - terraform utilite (v1.3.2 or higher)
+  - policies for IAM roles for the following components in aws:
+    - EC2
+    - VPC
+    - S3
+    - SSM
+
+#=============================================================================================
+#           					ATTENTION											      
+# AWS charges for ec2 instances 															  
+# type (small): 0.023 USD per Hour for Kafka project         								  
+# type (medium): 0.0464 USD per Hour for Minikube project                                     
+# These types were selected according to the price and necessary resources.                   
+# instance_type parameter to change instance type in variables.tf file (/IaC/aws/projects/..).
+#=============================================================================================
+
+To deploy infrastructure:
+1. To prepare state storage for terraform:
+  - to clone current repository
+  - to create S3 Bucket (terraform remote state storage for other projects), pass in IaC/terraform/aws/state_storage/s3/ dir:
+    - $ terraform init
+    - $ terraform apply --auto-approve
+  - a received output in logs "s3_bucket_name" to paste in:
+    variables.tf file as "s3_bucket_name" parameter in projects:
+      - IaC/terraform/aws/projects/kafka-project
+      - IaC/terraform/aws/projects/clickhouse-project
+      - IaC/terraform/aws/projects/minikube-project
+    remote_state.tf file in "bucket" parameter in projects:
+      - IaC/terraform/aws/projects/kafka-project
+      - IaC/terraform/aws/projects/clickhouse-project
+      - IaC/terraform/aws/projects/minikube-project
+      - IaC/terraform/aws/projects/network_project
+2. To prepare Network:
+  - to create network components, pass in IaC/terraform/aws/projects/network_project dir:
+    - $ terraform init
+    - $ terraform apply --auto-approve
+3. To deploy Kafka:
+  - to generate ssh keys (to get access to Kafka, Clickhouse, Minikube EC2 instances)
+  - to complete ec2_file_ssh_id_rsa_path parameter (path to the ssh pub key file) in variables.tf file in projects:
+    - IaC/terraform/aws/projects/kafka-project
+    - IaC/terraform/aws/projects/clickhouse-project
+    - IaC/terraform/aws/projects/minikube-project
+  - pass in IaC/terraform/aws/projects/kafka-project dir:
+    - $ terraform init
+    - $ terraform apply --auto-approve
+4. To deploy Clickhouse Database:
+  - pass in IaC/terraform/aws/projects/clickhouse-project dir:
+    - $ terraform init
+    - $ terraform apply --auto-approve
+5. To deploy Minikube:
+  - pass in IaC/terraform/aws/projects/minikube-project dir:
+    - $ terraform init
+    - $ terraform apply --auto-approve

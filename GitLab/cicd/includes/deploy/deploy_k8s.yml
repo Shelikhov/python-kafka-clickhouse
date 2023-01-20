@@ -1,0 +1,24 @@
+.deploy_minikube:
+    image: webdevops/ansible:latest
+    before_script:
+        - apt update
+        - apt install curl -y
+        - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        - install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+        - mkdir $TEMP_DIR
+        - ansible-vault decrypt id_rsa --vault-id $EC2_SSH_KEY_PASS --output $TEMP_DIR/ssh_key
+        - chmod 600 $TEMP_DIR/ssh_key
+        - scp -i $TEMP_DIR/ssh_key -oStrictHostKeyChecking=no $EC2_USER@$EC2_HOST:/home/$EC2_USER/.minikube/ca.crt $TEMP_DIR
+        - scp -i $TEMP_DIR/ssh_key -oStrictHostKeyChecking=no $EC2_USER@$EC2_HOST:/home/$EC2_USER/.minikube/profiles/minikube/client.key  $TEMP_DIR
+        - scp -i $TEMP_DIR/ssh_key -oStrictHostKeyChecking=no $EC2_USER@$EC2_HOST:/home/$EC2_USER/.minikube/profiles/minikube/client.crt  $TEMP_DIR
+        - |
+          K8S_CLUSTER_PORT=`awk -F: '{print $2}' <(ssh -i $TEMP_DIR/ssh_key $EC2_USER@$EC2_HOST "docker port minikube 8443")`
+        - kubectl config set-cluster k8s-cluster --server=https://$EC2_HOST:$K8S_CLUSTER_PORT --certificate-authority=$TEMP_DIR/ca.crt
+        - kubectl config set-credentials k8s-user --client-certificate=$TEMP_DIR/client.crt --client-key=$TEMP_DIR/client.key
+        - kubectl config set-context --cluster=k8s-cluster --user=k8s-user k8s-context
+        - kubectl config use-context k8s-context
+    script:
+        - kubectl apply -f deployment/configmap.yaml
+        - kubectl apply -f deployment/deployment.yaml
+    after_script:
+        - rm -rf $TEMP_DIR
